@@ -62,5 +62,14 @@ object PathRef{
     new PathRef(path, quick, sig)
   }
   private implicit val pathFormat: RW[Path] = JsonFormatters.pathReadWrite
-  implicit def jsonFormatter: RW[PathRef] = upickle.default.macroRW
+  implicit def jsonFormatter: RW[PathRef] = upickle.default.readwriter[String].bimap[PathRef](
+    p =>
+      (if (p.quick) "qref" else "ref") + ":" +
+      String.format("0x%08X", p.sig.asInstanceOf[AnyRef]) + ":" +
+      p.path.toString(),
+    s => {
+      val Array(prefix, hex, path) = s.split(":", 3)
+      PathRef(Path(path), prefix match{ case "qref" => true case "ref" => false}, Integer.parseInt(hex, 16))
+    }
+  )
 }
