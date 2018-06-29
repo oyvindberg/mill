@@ -187,7 +187,7 @@ trait JavaModule extends mill.Module with TaskModule { outer =>
     )
   }
 
-  def docJar = T[PathRef] {
+  def docJar: Task[Option[PathRef]] = T[PathRef] {
     val outDir = T.ctx().dest
 
     val javadocDir = outDir / 'javadoc
@@ -219,11 +219,11 @@ trait JavaModule extends mill.Module with TaskModule { outer =>
     )
 
     createJar(Agg(javadocDir))(outDir)
-  }
+  }.map(Option.apply)
 
-  def sourceJar = T {
+  def sourceJar: Task[Option[PathRef]] = T {
     createJar((allSources() ++ resources()).map(_.path).filter(exists))
-  }
+  }.map(Option.apply)
 
   def forkArgs = T{ Seq.empty[String] }
 

@@ -4,6 +4,7 @@ package scalalib
 
 import ammonite.ops.{%, %%, cp, ls, mkdir, pwd, rm, up}
 import ammonite.ops.ImplicitWd._
+import mill.define.Task
 import mill.eval.Result
 import mill.util.{TestEvaluator, TestUtil}
 import utest._
@@ -62,9 +63,18 @@ object HelloJavaTests extends TestSuite {
       val Right((ref2, _)) = eval.apply(HelloJava.app.docJar)
 
       assert(
-        %%("jar", "tf", ref1.path).out.lines.contains("hello/Core.html"),
-        %%("jar", "tf", ref2.path).out.lines.contains("hello/Main.html")
+        %%("jar", "tf", ref1.get.path).out.lines.contains("hello/Core.html"),
+        %%("jar", "tf", ref2.get.path).out.lines.contains("hello/Main.html")
       )
+    }
+    'noDocJar  - {
+      val eval = init()
+      object NoDoc extends TestUtil.BaseModule with JavaModule {
+        def millSourcePath =  TestUtil.getSrcPathBase() / millOuterCtx.enclosing.split('.')
+        override def docJar: Task[Option[PathRef]] = T(None)
+      }
+
+      val Right((None, _)) = eval.apply(NoDoc.docJar)
     }
     'test - {
       val eval = init()

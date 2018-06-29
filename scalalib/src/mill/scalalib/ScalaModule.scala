@@ -148,7 +148,7 @@ trait ScalaModule extends JavaModule { outer =>
     )
 
     createJar(Agg(javadocDir))(outDir)
-  }
+  }.map(Option.apply)
 
   def console() = T.command{
     if (T.ctx().log.inStream == DummyInputStream){

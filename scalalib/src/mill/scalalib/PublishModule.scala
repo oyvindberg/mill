@@ -47,8 +47,8 @@ trait PublishModule extends JavaModule { outer =>
   def publishLocal(): define.Command[Unit] = T.command {
     LocalPublisher.publish(
       jar = jar().path,
-      sourcesJar = sourceJar().path,
-      docJar = docJar().path,
+      sourcesJar = sourceJar().map(_.path),
+      docJar = docJar().map(_.path),
       pom = pom().path,
       ivy = ivy().path,
       artifact = artifactMetadata()
@@ -64,10 +64,10 @@ trait PublishModule extends JavaModule { outer =>
     PublishModule.PublishData(
       artifactMetadata(),
       Seq(
-        jar() -> s"$baseName.jar",
+        Some(jar()) -> s"$baseName.jar",
         sourceJar() -> s"$baseName-sources.jar",
         docJar() -> s"$baseName-javadoc.jar",
-        pom() -> s"$baseName.pom"
+        Some(pom()) -> s"$baseName.pom"
       )
     )
   }
@@ -84,12 +84,12 @@ trait PublishModule extends JavaModule { outer =>
       Option(gpgPassphrase),
       signed,
       T.ctx().log
-    ).publish(artifacts.map{case (a, b) => (a.path, b)}, artifactInfo, release)
+    ).publish(artifacts.collect{case (Some(a), b) => (a.path, b)}, artifactInfo, release)
   }
 }
 
 object PublishModule extends ExternalModule {
-  case class PublishData(meta: Artifact, payload: Seq[(PathRef, String)])
+  case class PublishData(meta: Artifact, payload: Seq[(Option[PathRef], String)])
 
   object PublishData{
     implicit def jsonify: upickle.default.ReadWriter[PublishData] = upickle.default.macroRW
@@ -104,7 +104,7 @@ object PublishModule extends ExternalModule {
                  sonatypeSnapshotUri: String = "https://oss.sonatype.org/content/repositories/snapshots") = T.command {
 
     val x: Seq[(Seq[(Path, String)], Artifact)] = Task.sequence(publishArtifacts.value)().map{
-      case PublishModule.PublishData(a, s) => (s.map{case (p, f) => (p.path, f)}, a)
+      case PublishModule.PublishData(a, s) => (s.collect{case (Some(p), f) => (p.path, f)}, a)
     }
     new SonatypePublisher(
       sonatypeUri,
